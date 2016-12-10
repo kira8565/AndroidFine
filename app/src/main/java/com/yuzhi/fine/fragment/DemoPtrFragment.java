@@ -1,6 +1,5 @@
 package com.yuzhi.fine.fragment;
 
-import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -13,11 +12,12 @@ import android.widget.ListView;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.squareup.okhttp.Request;
 import com.squareup.picasso.Picasso;
 import com.yuzhi.fine.R;
+import com.yuzhi.fine.activity.MainActivity;
 import com.yuzhi.fine.http.HttpClient;
 import com.yuzhi.fine.http.HttpResponseHandler;
+import com.yuzhi.fine.http.RestApiResponse;
 import com.yuzhi.fine.model.SearchParam;
 import com.yuzhi.fine.model.SearchShop;
 import com.yuzhi.fine.ui.UIHelper;
@@ -26,7 +26,6 @@ import com.yuzhi.fine.ui.quickadapter.BaseAdapterHelper;
 import com.yuzhi.fine.ui.quickadapter.QuickAdapter;
 import com.yuzhi.fine.utils.DeviceUtil;
 
-import java.io.IOException;
 import java.util.List;
 
 import butterknife.Bind;
@@ -35,15 +34,14 @@ import in.srain.cube.views.ptr.PtrClassicFrameLayout;
 import in.srain.cube.views.ptr.PtrDefaultHandler;
 import in.srain.cube.views.ptr.PtrFrameLayout;
 import in.srain.cube.views.ptr.PtrHandler;
-import in.srain.cube.views.ptr.PtrUIHandler;
 import in.srain.cube.views.ptr.header.StoreHouseHeader;
-import in.srain.cube.views.ptr.indicator.PtrIndicator;
+import okhttp3.Request;
 
 /**
  * Created by tiansj on 15/9/4.
  */
 public class DemoPtrFragment extends Fragment {
-    private Activity context;
+    private MainActivity context;
 
     private SearchParam param;
     private int pno = 1;
@@ -65,7 +63,7 @@ public class DemoPtrFragment extends Fragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        context = getActivity();
+        context = (MainActivity) getActivity();
         initData();
         initView();
         loadData();
@@ -80,6 +78,7 @@ public class DemoPtrFragment extends Fragment {
                         .setImageUrl(R.id.logo, shop.getLogo()); // 自动异步加载图片
             }
         };
+        listView.setDrawingCacheEnabled(true);
         listView.setAdapter(adapter);
 
         // header custom begin
@@ -137,6 +136,7 @@ public class DemoPtrFragment extends Fragment {
                                  int visibleItemCount, int totalItemCount) {
             }
         });
+
     }
 
     private void initData() {
@@ -152,10 +152,9 @@ public class DemoPtrFragment extends Fragment {
         param.setPno(pno);
         HttpClient.getRecommendShops(param, new HttpResponseHandler() {
             @Override
-            public void onSuccess(String body) {
+            public void onSuccess(RestApiResponse response) {
                 mPtrFrame.refreshComplete();
-                JSONObject object = JSON.parseObject(body);
-                List<SearchShop> list = JSONArray.parseArray(object.getString("body"), SearchShop.class);
+                List<SearchShop> list = JSONArray.parseArray(response.body, SearchShop.class);
                 listView.updateLoadMoreViewText(list);
                 isLoadAll = list.size() < HttpClient.PAGE_SIZE;
                 if(pno == 1) {
@@ -166,7 +165,7 @@ public class DemoPtrFragment extends Fragment {
             }
 
             @Override
-            public void onFailure(Request request, IOException e) {
+            public void onFailure(Request request, Exception e) {
                 mPtrFrame.refreshComplete();
                 listView.setLoadMoreViewTextError();
             }
